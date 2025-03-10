@@ -5,6 +5,7 @@ import (
 	"dndgoldtracker/models"
 	"dndgoldtracker/storage"
 	"fmt"
+	//tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
@@ -30,12 +31,15 @@ func main() {
 		case "2":
 			commands.AddMember(&party)
 			storage.SaveParty(party)
+			party.Display()
 		case "3":
-			commands.DistributeCoins(&party)
+			commands.AddCoins(&party)
 			storage.SaveParty(party)
+			party.Display()
 		case "4":
-			commands.AddXP(&party)
+			commands.AddExperience(&party)
 			storage.SaveParty(party)
+			party.Display()
 		case "5":
 			storage.SaveParty(party)
 			fmt.Println("Party saved. Exiting...")

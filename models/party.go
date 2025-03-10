@@ -2,15 +2,18 @@ package models
 
 import "fmt"
 
-type Wallet struct {
-	Gold, Silver, Copper, Electrum, Platinum int
-}
+const platinum = "Platinum"
+const gold = "Gold"
+const electrum = "Electrum"
+const silver = "Silver"
+const copper = "Copper"
 
 type Member struct {
-	Name   string
-	Level  int
-	XP     int
-	Wallet Wallet
+	Name         string
+	Level        int
+	XP           int
+	Coins        map[string]int
+	CoinPriority int
 }
 
 type Party struct {
@@ -21,9 +24,9 @@ type Party struct {
 func (p *Party) Display() {
 	fmt.Println("\n=== Party Members ===")
 	for _, member := range p.Members {
-		fmt.Printf("%s (Level %d) - XP: %d, Wallet: %dGP %dSP %dCP %dEP %dPP\n",
+		fmt.Printf("%s (Level %d) - XP: %d, Wallet:%dPP %dGP %dEP %dSP %dCP \n",
 			member.Name, member.Level, member.XP,
-			member.Wallet.Gold, member.Wallet.Silver, member.Wallet.Copper,
-			member.Wallet.Electrum, member.Wallet.Platinum)
+			member.Coins[platinum], member.Coins[gold], member.Coins[electrum],
+			member.Coins[silver], member.Coins[copper])
 	}
 }
