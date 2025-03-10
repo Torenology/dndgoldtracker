@@ -29,10 +29,13 @@ func main() {
 			party.Display()
 		case "2":
 			commands.AddMember(&party)
+			storage.SaveParty(party)
 		case "3":
 			commands.DistributeCoins(&party)
+			storage.SaveParty(party)
 		case "4":
 			commands.AddXP(&party)
+			storage.SaveParty(party)
 		case "5":
 			storage.SaveParty(party)
 			fmt.Println("Party saved. Exiting...")
