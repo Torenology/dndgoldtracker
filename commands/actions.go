@@ -6,6 +6,14 @@ import (
 	"sort"
 )
 
+const (
+	platinum string = "Platinum"
+	gold     string = "Gold"
+	electrum string = "Electrum"
+	silver   string = "Silver"
+	copper   string = "Copper"
+)
+
 // DistributeCoins distributes coins fairly among party members in a fixed order
 func DistributeCoins(p *models.Party, money map[string]int) {
 	// Define the fixed order of coins
@@ -41,7 +49,7 @@ func DistributeCoins(p *models.Party, money map[string]int) {
 		})
 
 		// Distribute excess coins based on priority
-		for i := 0; i < remainder; i++ {
+		for i := range remainder {
 			p.Members[i].Coins[coinType]++
 		}
 

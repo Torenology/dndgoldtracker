@@ -2,11 +2,11 @@ package models
 
 import "fmt"
 
-const platinum = "Platinum"
-const gold = "Gold"
-const electrum = "Electrum"
-const silver = "Silver"
-const copper = "Copper"
+const platinum string = "Platinum"
+const gold string = "Gold"
+const electrum string = "Electrum"
+const silver string = "Silver"
+const copper string = "Copper"
 
 type Member struct {
 	Name         string

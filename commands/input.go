@@ -4,13 +4,8 @@ import (
 	"dndgoldtracker/models"
 	"fmt"
 	"strconv"
+	"strings"
 )
-
-const platinum = "Platinum"
-const gold = "Gold"
-const electrum = "Electrum"
-const silver = "Silver"
-const copper = "Copper"
 
 // GetUserChoice reads a string input
 func GetUserChoice(prompt string) string {
@@ -69,4 +64,21 @@ func AddCoins(p *models.Party) {
 	money[copper] = GetIntUserInput("Copper: ")
 
 	DistributeCoins(p, money)
+}
+
+// Function to parse user input for coins
+func ParseCoinsInput(input string) map[string]int {
+	coins := make(map[string]int)
+	coinParts := strings.Fields(input)
+	for _, part := range coinParts {
+		coinInfo := strings.Split(part, ":")
+		if len(coinInfo) == 2 {
+			coinType := coinInfo[0]
+			amount, err := strconv.Atoi(coinInfo[1])
+			if err == nil {
+				coins[coinType] = amount
+			}
+		}
+	}
+	return coins
 }
