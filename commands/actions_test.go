@@ -39,11 +39,11 @@ func TestDistributeCoins(t *testing.T) {
 
 	// Coins to distribute
 	money := map[string]int{
-		platinum: 10,
-		gold:     8,
-		electrum: 7,
-		silver:   5,
-		copper:   3,
+		models.Platinum: 10,
+		models.Gold:     8,
+		models.Electrum: 7,
+		models.Silver:   5,
+		models.Copper:   3,
 	}
 
 	// Call the function to distribute the coins
@@ -68,20 +68,20 @@ func TestDistributeCoins(t *testing.T) {
 		t.Run(test.memberName, func(t *testing.T) {
 			member := getMemberByName(party.Members, test.memberName)
 
-			if member.Coins[platinum] != test.expectedPlatinum {
-				t.Errorf("%s's platinum: expected %d, got %d", test.memberName, test.expectedPlatinum, member.Coins[platinum])
+			if member.Coins[models.Platinum] != test.expectedPlatinum {
+				t.Errorf("%s's platinum: expected %d, got %d", test.memberName, test.expectedPlatinum, member.Coins[models.Platinum])
 			}
-			if member.Coins[gold] != test.expectedGold {
-				t.Errorf("%s's gold: expected %d, got %d", test.memberName, test.expectedGold, member.Coins[gold])
+			if member.Coins[models.Gold] != test.expectedGold {
+				t.Errorf("%s's gold: expected %d, got %d", test.memberName, test.expectedGold, member.Coins[models.Gold])
 			}
-			if member.Coins[electrum] != test.expectedElectrum {
-				t.Errorf("%s's electrum: expected %d, got %d", test.memberName, test.expectedElectrum, member.Coins[electrum])
+			if member.Coins[models.Electrum] != test.expectedElectrum {
+				t.Errorf("%s's electrum: expected %d, got %d", test.memberName, test.expectedElectrum, member.Coins[models.Electrum])
 			}
-			if member.Coins[silver] != test.expectedSilver {
-				t.Errorf("%s's silver: expected %d, got %d", test.memberName, test.expectedSilver, member.Coins[silver])
+			if member.Coins[models.Silver] != test.expectedSilver {
+				t.Errorf("%s's silver: expected %d, got %d", test.memberName, test.expectedSilver, member.Coins[models.Silver])
 			}
-			if member.Coins[copper] != test.expectedCopper {
-				t.Errorf("%s's copper: expected %d, got %d", test.memberName, test.expectedCopper, member.Coins[copper])
+			if member.Coins[models.Copper] != test.expectedCopper {
+				t.Errorf("%s's copper: expected %d, got %d", test.memberName, test.expectedCopper, member.Coins[models.Copper])
 			}
 		})
 	}

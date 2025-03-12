@@ -2,11 +2,19 @@ package models
 
 import "fmt"
 
-const platinum string = "Platinum"
-const gold string = "Gold"
-const electrum string = "Electrum"
-const silver string = "Silver"
-const copper string = "Copper"
+const (
+	// Coin types
+	Platinum string = "Platinum"
+	Gold     string = "Gold"
+	Electrum string = "Electrum"
+	Silver   string = "Silver"
+	Copper   string = "Copper"
+)
+
+var (
+	// Define the fixed order of coins
+	CoinOrder = []string{Platinum, Gold, Electrum, Silver, Copper}
+)
 
 type Member struct {
 	Name         string
@@ -26,7 +34,7 @@ func (p *Party) Display() {
 	for _, member := range p.Members {
 		fmt.Printf("%s (Level %d) - XP: %d, Wallet:%dPP %dGP %dEP %dSP %dCP \n",
 			member.Name, member.Level, member.XP,
-			member.Coins[platinum], member.Coins[gold], member.Coins[electrum],
-			member.Coins[silver], member.Coins[copper])
+			member.Coins[Platinum], member.Coins[Gold], member.Coins[Electrum],
+			member.Coins[Silver], member.Coins[Copper])
 	}
 }

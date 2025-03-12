@@ -6,19 +6,8 @@ import (
 	"sort"
 )
 
-const (
-	platinum string = "Platinum"
-	gold     string = "Gold"
-	electrum string = "Electrum"
-	silver   string = "Silver"
-	copper   string = "Copper"
-)
-
 // DistributeCoins distributes coins fairly among party members in a fixed order
 func DistributeCoins(p *models.Party, money map[string]int) {
-	// Define the fixed order of coins
-	coinOrder := []string{platinum, gold, electrum, silver, copper}
-
 	numMembers := len(p.Members)
 	if numMembers == 0 {
 		fmt.Println("No members to distribute coins to.")
@@ -60,7 +49,7 @@ func DistributeCoins(p *models.Party, money map[string]int) {
 	}
 
 	// Distribute coins in the predefined order
-	for _, coinType := range coinOrder {
+	for _, coinType := range models.CoinOrder {
 		amount, exists := money[coinType]
 		if exists {
 			distributeCoin(coinType, amount)
