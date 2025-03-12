@@ -7,7 +7,7 @@ import (
 )
 
 // SaveParty writes party data to a JSON file
-func SaveParty(party models.Party) error {
+func SaveParty(party *models.Party) error {
 	data, err := json.MarshalIndent(party, "", "  ")
 	if err != nil {
 		return err

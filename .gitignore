@@ -25,4 +25,10 @@ go.work.sum
 .env
 
 # data storage json
-party.json
+party.json*
+
+# log file
+logFile.log
+
+# Vs Code Configuration
+.vscode
