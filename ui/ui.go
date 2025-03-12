@@ -46,14 +46,16 @@ var (
 )
 
 type model struct {
-	table      table.Model
-	party      models.Party
-	choice     int
-	chosen     bool
-	focusIndex int
-	inputs     []textinput.Model
-	cursorMode cursor.Mode
-	quitting   bool
+	table          table.Model
+	party          models.Party
+	choice         int
+	chosen         bool
+	coinFocusIndex int
+	coinInputs     []textinput.Model
+	xpFocusIndex   int
+	xpInputs       []textinput.Model
+	cursorMode     cursor.Mode
+	quitting       bool
 }
 
 func (m model) Init() tea.Cmd { return nil }
@@ -67,12 +69,14 @@ func NewModel() model {
 	}
 
 	t := ConfigureTable(p.Members)
-	i := ConfigureInputs()
+	ci := ConfigureCoinInputs()
+	xi := ConfigureXpInputs()
 
 	return model{
-		party:  p,
-		table:  t,
-		inputs: i,
+		party:      p,
+		table:      t,
+		coinInputs: ci,
+		xpInputs:   xi,
 	}
 }
 
@@ -158,7 +162,6 @@ func updateChoices(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 // Update loop for updating party money
 func updateMoney(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
-	//fmt.Printf("inputs[0] =  %s\n", m.inputs[0].Value())
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -171,9 +174,9 @@ func updateMoney(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			if m.cursorMode > cursor.CursorHide {
 				m.cursorMode = cursor.CursorBlink
 			}
-			cmds := make([]tea.Cmd, len(m.inputs))
-			for i := range m.inputs {
-				cmds[i] = m.inputs[i].Cursor.SetMode(m.cursorMode)
+			cmds := make([]tea.Cmd, len(m.coinInputs))
+			for i := range m.coinInputs {
+				cmds[i] = m.coinInputs[i].Cursor.SetMode(m.cursorMode)
 			}
 			return m, tea.Batch(cmds...)
 
@@ -183,18 +186,18 @@ func updateMoney(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 			// Did the user press enter while the submit button was focused?
 			// If so, Distribute money.
-			if s == "enter" && m.focusIndex == len(m.inputs) {
+			if s == "enter" && m.coinFocusIndex == len(m.coinInputs) {
 				var err error
 				coinMap := make(map[string]int)
 				// Set any unset values to 0
-				for i := range m.inputs {
-					if m.inputs[i].Value() == "" {
-						m.inputs[i].SetValue("0")
+				for i := range m.coinInputs {
+					if m.coinInputs[i].Value() == "" {
+						m.coinInputs[i].SetValue("0")
 					}
 				}
 
 				for i := range coins {
-					coinMap[coins[i]], err = strconv.Atoi(m.inputs[i].Value())
+					coinMap[coins[i]], err = strconv.Atoi(m.coinInputs[i].Value())
 					log.Printf("CoinMap entry for %s: %d\n", coins[i], coinMap[coins[i]])
 					if err != nil {
 						fmt.Printf("Invalid input for %s, try again\n", coins[i])
@@ -205,51 +208,129 @@ func updateMoney(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				commands.DistributeCoins(&m.party, coinMap)
 				storage.SaveParty(&m.party)
 				UpdateTableData(m.party.Members, &m.table)
-				ResetInputs(m.inputs)
+				ResetInputs(m.coinInputs)
 
 				m.chosen = false
 				return m, nil
 			}
 			// Cycle indexes
 			if s == "up" || s == "shift+tab" {
-				m.focusIndex--
+				m.coinFocusIndex--
 			} else {
-				m.focusIndex++
+				m.coinFocusIndex++
 			}
 
-			if m.focusIndex > len(m.inputs) {
-				m.focusIndex = 0
-			} else if m.focusIndex < 0 {
-				m.focusIndex = len(m.inputs)
+			if m.coinFocusIndex > len(m.coinInputs) {
+				m.coinFocusIndex = 0
+			} else if m.coinFocusIndex < 0 {
+				m.coinFocusIndex = len(m.coinInputs)
 			}
 
-			cmds := make([]tea.Cmd, len(m.inputs))
-			for i := 0; i <= len(m.inputs)-1; i++ {
-				if i == m.focusIndex {
+			cmds := make([]tea.Cmd, len(m.coinInputs))
+			for i := 0; i <= len(m.coinInputs)-1; i++ {
+				if i == m.coinFocusIndex {
 					// Set focused state
-					cmds[i] = m.inputs[i].Focus()
-					m.inputs[i].PromptStyle = focusedStyle
-					m.inputs[i].TextStyle = focusedStyle
+					cmds[i] = m.coinInputs[i].Focus()
+					m.coinInputs[i].PromptStyle = focusedStyle
+					m.coinInputs[i].TextStyle = focusedStyle
 					continue
 				}
 				// Remove focused state
-				m.inputs[i].Blur()
-				m.inputs[i].PromptStyle = noStyle
-				m.inputs[i].TextStyle = noStyle
+				m.coinInputs[i].Blur()
+				m.coinInputs[i].PromptStyle = noStyle
+				m.coinInputs[i].TextStyle = noStyle
 			}
 
 			return m, tea.Batch(cmds...)
 		}
 	}
 	// Handle character input and blinking
-	cmd := m.updateInputs(msg)
+	cmd := m.updateInputs(msg, m.coinInputs)
 
 	return m, cmd
 }
 
 // Update loop for updating party experience
 func updateExperience(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
-	return m, nil
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "esc":
+			return m, tea.Quit
+
+		// Change cursor mode
+		case "ctrl+r":
+			m.cursorMode++
+			if m.cursorMode > cursor.CursorHide {
+				m.cursorMode = cursor.CursorBlink
+			}
+			cmds := make([]tea.Cmd, len(m.xpInputs))
+			for i := range m.xpInputs {
+				cmds[i] = m.xpInputs[i].Cursor.SetMode(m.cursorMode)
+			}
+			return m, tea.Batch(cmds...)
+
+		// Set focus to next input
+		case "tab", "shift+tab", "enter", "up", "down":
+			s := msg.String()
+
+			// Did the user press enter while the submit button was focused?
+			// If so, Distribute xp.
+			if s == "enter" && m.xpFocusIndex == len(m.xpInputs) {
+				var err error
+				if m.xpInputs[0].Value() == "" {
+					m.xpInputs[0].SetValue("0")
+				}
+
+				xp, err := strconv.Atoi(m.xpInputs[0].Value())
+				if err != nil {
+					log.Println("Invalid input for experience, try again")
+					return m, nil
+				}
+
+				commands.DistributeExperience(&m.party, xp)
+				storage.SaveParty(&m.party)
+				UpdateTableData(m.party.Members, &m.table)
+				ResetInputs(m.xpInputs)
+
+				m.chosen = false
+				return m, nil
+			}
+			// Cycle indexes
+			if s == "up" || s == "shift+tab" {
+				m.xpFocusIndex--
+			} else {
+				m.xpFocusIndex++
+			}
+
+			if m.xpFocusIndex > len(m.xpInputs) {
+				m.xpFocusIndex = 0
+			} else if m.xpFocusIndex < 0 {
+				m.xpFocusIndex = len(m.xpInputs)
+			}
+
+			cmds := make([]tea.Cmd, len(m.xpInputs))
+			for i := 0; i <= len(m.xpInputs)-1; i++ {
+				if i == m.xpFocusIndex {
+					// Set focused state
+					cmds[i] = m.xpInputs[i].Focus()
+					m.xpInputs[i].PromptStyle = focusedStyle
+					m.xpInputs[i].TextStyle = focusedStyle
+					continue
+				}
+				// Remove focused state
+				m.xpInputs[i].Blur()
+				m.xpInputs[i].PromptStyle = noStyle
+				m.xpInputs[i].TextStyle = noStyle
+			}
+
+			return m, tea.Batch(cmds...)
+		}
+	}
+	// Handle character input and blinking
+	cmd := m.updateInputs(msg, m.xpInputs)
+
+	return m, cmd
 }
 
 // Sub-Views
@@ -287,15 +368,15 @@ func moneyView(m model) string {
 	msg.WriteRune('\n')
 	msg.WriteString(fmt.Sprintf("Current Coin Priority is to %s\n\n", m.party.Members[currentPrio].Name))
 
-	for i := range m.inputs {
-		msg.WriteString(m.inputs[i].View())
-		if i < len(m.inputs)-1 {
+	for i := range m.coinInputs {
+		msg.WriteString(m.coinInputs[i].View())
+		if i < len(m.coinInputs)-1 {
 			msg.WriteRune('\n')
 		}
 	}
 
 	button := &blurredButton
-	if m.focusIndex == len(m.inputs) {
+	if m.coinFocusIndex == len(m.coinInputs) {
 		button = &focusedButton
 	}
 	fmt.Fprintf(&msg, "\n\n%s\n\n", *button)
@@ -309,8 +390,24 @@ func moneyView(m model) string {
 
 // The view for adding experience
 func xpView(m model) string {
-	var msg string
-	msg += "Xp entered here will be distributed to all party members equally"
+	var msg strings.Builder
+	msg.WriteString("Xp entered here will be distributed to all party members equally")
+	for i := range m.xpInputs {
+		msg.WriteString(m.xpInputs[i].View())
+		if i < len(m.xpInputs)-1 {
+			msg.WriteRune('\n')
+		}
+	}
 
-	return msg
+	button := &blurredButton
+	if m.coinFocusIndex == len(m.coinInputs) {
+		button = &focusedButton
+	}
+	fmt.Fprintf(&msg, "\n\n%s\n\n", *button)
+
+	msg.WriteString(helpStyle.Render("cursor mode is "))
+	msg.WriteString(cursorModeHelpStyle.Render(m.cursorMode.String()))
+	msg.WriteString(helpStyle.Render(" (ctrl+r to change style)"))
+
+	return msg.String()
 }

@@ -35,19 +35,19 @@ func membersToRows(members []models.Member) []table.Row {
 	return rows
 }
 
-func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
-	cmds := make([]tea.Cmd, len(m.inputs))
+func (m *model) updateInputs(msg tea.Msg, inputs []textinput.Model) tea.Cmd {
+	cmds := make([]tea.Cmd, len(inputs))
 
 	// Only text inputs with Focus() set will respond, so it's safe to simply
 	// update all of them here without any further logic.
-	for i := range m.inputs {
-		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
+	for i := range inputs {
+		inputs[i], cmds[i] = inputs[i].Update(msg)
 	}
 
 	return tea.Batch(cmds...)
 }
 
-func ConfigureInputs() []textinput.Model {
+func ConfigureCoinInputs() []textinput.Model {
 
 	i := make([]textinput.Model, 5)
 	var t textinput.Model
@@ -74,6 +74,26 @@ func ConfigureInputs() []textinput.Model {
 		i[j] = t
 	}
 
+	return i
+}
+
+func ConfigureXpInputs() []textinput.Model {
+	i := make([]textinput.Model, 1)
+	var t textinput.Model
+	for j := range i {
+		t = textinput.New()
+		t.Cursor.Style = cursorStyle
+		t.CharLimit = 32
+
+		switch j {
+		case 0:
+			t.Placeholder = xp
+			t.Focus()
+			t.PromptStyle = focusedStyle
+			t.TextStyle = focusedStyle
+		}
+		i[j] = t
+	}
 	return i
 }
 
