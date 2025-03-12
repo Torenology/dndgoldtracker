@@ -3,6 +3,7 @@ package commands
 import (
 	"dndgoldtracker/models"
 	"fmt"
+	"log"
 	"sort"
 )
 
@@ -10,7 +11,7 @@ import (
 func DistributeCoins(p *models.Party, money map[string]int) {
 	numMembers := len(p.Members)
 	if numMembers == 0 {
-		fmt.Println("No members to distribute coins to.")
+		log.Println("No members to distribute coins to.")
 		return
 	}
 
@@ -67,16 +68,32 @@ func DistributeExperience(p *models.Party, xp int) {
 	fmt.Println("XP added!")
 }
 
+func AddMember(p *models.Party, name string, xp int, money map[string]int) {
+	m := models.Member{Name: name, Level: DetermineLevel(xp), XP: xp, Coins: money, CoinPriority: len(p.Members)}
+	p.Members = append(p.Members, m)
+	log.Printf("Welcome to the party %s!\n", m.Name)
+}
+
 // CheckLevelUp checks if a member levels up
 func CheckLevelUp(member *models.Member) {
-	var xpThresholds = []int{0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000} // XP values taken for D&D 5e
 
-	for member.Level < len(xpThresholds)-1 {
-		if member.XP >= xpThresholds[member.Level] {
+	for member.Level < len(models.XpThresholds)-1 {
+		if member.XP >= models.XpThresholds[member.Level] {
 			member.Level++
-			fmt.Printf("🎉 %s leveled up to Level %d! 🎉\n", member.Name, member.Level)
+			log.Printf("🎉 %s leveled up to Level %d! 🎉\n", member.Name, member.Level)
 		} else {
 			break
 		}
 	}
+}
+
+func DetermineLevel(xp int) int {
+	for i := range models.XpThresholds {
+		if xp < models.XpThresholds[i] {
+			return i + 1
+		}
+	}
+
+	// max level
+	return 20
 }

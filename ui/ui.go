@@ -20,6 +20,7 @@ import (
 const (
 	name    = "Name"
 	xp      = "XP"
+	level   = "Level"
 	dotChar = " • "
 )
 
@@ -35,22 +36,25 @@ var (
 	helpStyle           = blurredStyle
 	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 
-	focusedButton = focusedStyle.Render("[ Submit ]")
-	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
-	xps           = []string{xp}
+	focusedButton   = focusedStyle.Render("[ Submit ]")
+	blurredButton   = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
+	xpFields        = []string{xp}
+	newMemberFields = []string{name, xp}
 )
 
 type model struct {
-	table          table.Model
-	party          models.Party
-	choice         int
-	chosen         bool
-	coinFocusIndex int
-	coinInputs     []textinput.Model
-	xpFocusIndex   int
-	xpInputs       []textinput.Model
-	cursorMode     cursor.Mode
-	quitting       bool
+	table            table.Model
+	party            models.Party
+	choice           int
+	chosen           bool
+	coinFocusIndex   int
+	coinInputs       []textinput.Model
+	xpFocusIndex     int
+	xpInputs         []textinput.Model
+	memberFocusIndex int
+	memberInputs     []textinput.Model
+	cursorMode       cursor.Mode
+	quitting         bool
 }
 
 func (m model) Init() tea.Cmd { return nil }
@@ -63,16 +67,20 @@ func NewModel() model {
 		p = models.Party{}
 	}
 
+	newMemberFields = append(newMemberFields, models.CoinOrder...)
+
 	t := configureTable(p.Members)
 
 	ci := configureInputs(models.CoinOrder)
-	xi := configureInputs(xps)
+	xi := configureInputs(xpFields)
+	mi := configureInputs(newMemberFields)
 
 	return model{
-		party:      p,
-		table:      t,
-		coinInputs: ci,
-		xpInputs:   xi,
+		party:        p,
+		table:        t,
+		coinInputs:   ci,
+		xpInputs:     xi,
+		memberInputs: mi,
 	}
 }
 
@@ -98,8 +106,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case 1:
 		return updateExperience(msg, m)
 	case 2:
-		m.quitting = true
-		return m, tea.Quit
+		return updateAddMember(msg, m)
 	default:
 		return m, nil
 	}
@@ -121,7 +128,7 @@ func (m model) View() string {
 		case 1:
 			s = xpView(m)
 		case 2:
-			s = "Goodbye"
+			s = addMemberView(m)
 		default:
 			s = "Don't do that"
 		}
@@ -266,6 +273,74 @@ func updateExperience(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func updateAddMember(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "esc":
+			return m, tea.Quit
+
+		// Change cursor mode
+		case "ctrl+r":
+			var cmds []tea.Cmd
+			cmds = changeCursorMode(m.memberInputs, &m.cursorMode)
+
+			return m, tea.Batch(cmds...)
+		// Set focus to next input
+		case "enter":
+			// Did the user press enter while the submit button was focused?
+			// If so, Distribute money.
+			if m.memberFocusIndex == len(m.memberInputs) {
+				var err error
+				if m.memberInputs[0].Value() == "" {
+					log.Println("Name value required, try again")
+					return m, nil
+				}
+				name := m.memberInputs[0].Value()
+				// Set any unset values other than name to 0
+				handleUnsetInputs(m.memberInputs)
+				xp, err := strconv.Atoi(m.memberInputs[1].Value())
+				if err != nil {
+					log.Println("Error occurred with xp, try again")
+					return m, nil
+				}
+
+				newMemberCoins := m.memberInputs[2:len(m.memberInputs)]
+				newMemberMoney := make(map[string]int)
+				for i := range newMemberCoins {
+					newMemberMoney[newMemberCoins[i].Placeholder], err = strconv.Atoi(newMemberCoins[i].Value())
+					if err != nil {
+						log.Printf("Error occurred with %s. Please try again", newMemberCoins[i].Placeholder)
+						return m, nil
+					}
+				}
+
+				// Add the new party Member
+				commands.AddMember(&m.party, name, xp, newMemberMoney)
+				saveUpdateReset(&m)
+
+				m.chosen = false
+				return m, nil
+			}
+			// Cycle indexes
+		case "up", "shift-tab", "down":
+			s := msg.String()
+			if s == "down" {
+				m.memberFocusIndex++
+			} else {
+				m.memberFocusIndex--
+			}
+			log.Printf("memberFocusIndex = %d", m.memberFocusIndex)
+			cmds := updateFocusIndex(&m.memberFocusIndex, m.memberInputs)
+			return m, tea.Batch(cmds...)
+		}
+	}
+	// Handle character input and blinking
+	cmd := m.updateInputs(msg, m.memberInputs)
+
+	return m, cmd
+}
+
 // Sub-Views
 
 // The first view, where you're choosing a task
@@ -274,14 +349,14 @@ func choicesView(m model) string {
 	var msg string
 	msg += baseStyle.Render(m.table.View())
 
-	msg += "\nHave you earned money or experience?"
+	msg += "\nWhat would you like to do?"
 	msg += "\n"
 
 	msg += fmt.Sprintf(
 		"\n%s\n%s\n%s\n",
-		checkbox("Money", choice == 0),
-		checkbox("Experience", choice == 1),
-		checkbox("Quit", choice == 2),
+		checkbox("Distribute Money", choice == 0),
+		checkbox("Distribute Experience", choice == 1),
+		checkbox("Add Member", choice == 2),
 	)
 
 	msg += subtleStyle.Render("j/k, up/down: select") + dotStyle +
@@ -307,5 +382,12 @@ func xpView(m model) string {
 	var msg strings.Builder
 	msg.WriteString("Xp entered here will be distributed to all party members equally\n\n")
 	msg.WriteString(buildInputList(m.xpInputs, m.xpFocusIndex, m.cursorMode))
+	return msg.String()
+}
+
+func addMemberView(m model) string {
+	var msg strings.Builder
+	msg.WriteString("Enter the new party member's data\n")
+	msg.WriteString(buildInputList(m.memberInputs, m.memberFocusIndex, m.cursorMode))
 	return msg.String()
 }

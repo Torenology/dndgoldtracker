@@ -28,6 +28,7 @@ func membersToRows(members []models.Member) []table.Row {
 		rows = append(rows, table.Row{
 			m.Name,
 			strconv.Itoa(m.XP),
+			strconv.Itoa(m.Level),
 			strconv.Itoa(m.Coins[models.Platinum]),
 			strconv.Itoa(m.Coins[models.Gold]),
 			strconv.Itoa(m.Coins[models.Electrum]),
@@ -76,6 +77,7 @@ func configureTable(members []models.Member) table.Model {
 	columns := []table.Column{
 		{Title: name, Width: 10},
 		{Title: xp, Width: 6},
+		{Title: level, Width: 6},
 		{Title: models.Platinum, Width: 10},
 		{Title: models.Gold, Width: 6},
 		{Title: models.Electrum, Width: 10},
