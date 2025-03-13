@@ -26,13 +26,14 @@ type Member struct {
 }
 
 type Party struct {
-	Members []Member
+	ActiveMembers   []Member
+	InactiveMembers []Member
 }
 
 // Display prints the current party state
 func (p *Party) Display() {
 	fmt.Println("\n=== Party Members ===")
-	for _, member := range p.Members {
+	for _, member := range p.ActiveMembers {
 		fmt.Printf("%s (Level %d) - XP: %d, Wallet:%dPP %dGP %dEP %dSP %dCP \n",
 			member.Name, member.Level, member.XP,
 			member.Coins[Platinum], member.Coins[Gold], member.Coins[Electrum],

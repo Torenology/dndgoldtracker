@@ -8,19 +8,19 @@ import (
 // Test XP Distribution
 func TestDistributeExperience(t *testing.T) {
 	party := models.Party{
-		Members: []models.Member{
+		ActiveMembers: []models.Member{
 			{Name: "Alice", Level: 1, XP: 0},
 			{Name: "Bob", Level: 1, XP: 0},
 		},
 	}
 
 	xpToAdd := 100
-	expectedXP := xpToAdd / len(party.Members)
+	expectedXP := xpToAdd / len(party.ActiveMembers)
 
 	DistributeExperience(&party, xpToAdd)
 
 	// Check if XP was distributed correctly
-	for _, member := range party.Members {
+	for _, member := range party.ActiveMembers {
 		if member.XP != expectedXP {
 			t.Errorf("Expected %d XP, but got %d for %s", expectedXP, member.XP, member.Name)
 		}
@@ -30,7 +30,7 @@ func TestDistributeExperience(t *testing.T) {
 func TestDistributeCoins(t *testing.T) {
 	// Create a mock party with 3 members
 	party := models.Party{
-		Members: []models.Member{
+		ActiveMembers: []models.Member{
 			{Name: "Keg", CoinPriority: 0, Coins: make(map[string]int)},
 			{Name: "Rowan", CoinPriority: 1, Coins: make(map[string]int)},
 			{Name: "Fred", CoinPriority: 2, Coins: make(map[string]int)},
@@ -66,7 +66,7 @@ func TestDistributeCoins(t *testing.T) {
 	// Iterate through the test cases and compare expected vs actual
 	for _, test := range tests {
 		t.Run(test.memberName, func(t *testing.T) {
-			member := getMemberByName(party.Members, test.memberName)
+			member := getMemberByName(party.ActiveMembers, test.memberName)
 
 			if member.Coins[models.Platinum] != test.expectedPlatinum {
 				t.Errorf("%s's platinum: expected %d, got %d", test.memberName, test.expectedPlatinum, member.Coins[models.Platinum])

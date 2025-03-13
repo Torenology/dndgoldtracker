@@ -153,7 +153,7 @@ func handleUnsetInputs(inputs []textinput.Model) {
 
 func saveUpdateReset(m *model) {
 	storage.SaveParty(&m.party)
-	updateTableData(m.party.Members, &m.table)
+	updateTableData(m.party.ActiveMembers, &m.activeMemberTable)
 	resetInputs(m.coinInputs)
 }
 
