@@ -2,13 +2,27 @@ package commands
 
 import (
 	"dndgoldtracker/models"
-	"fmt"
 	"log"
 	"slices"
 	"sort"
 )
 
+// Adds a new member to the active member list and gives them last Coin Priority
+func AddMember(p *models.Party, name string, xp int, money map[string]int) {
+	m := models.Member{Name: name, Level: determineLevel(xp), XP: xp, Coins: money, CoinPriority: len(p.ActiveMembers)}
+	p.ActiveMembers = append(p.ActiveMembers, m)
+	log.Printf("Welcome to the party %s!\n", m.Name)
+}
+
+// Moves a member to a different group e.g. Active to Inactive
+func ChangeMemberGroup(srcGroup *[]models.Member, dstGroup *[]models.Member, index int) {
+	*dstGroup = append(*dstGroup, (*srcGroup)[index])
+	(*dstGroup)[len(*dstGroup)-1].CoinPriority = len(*dstGroup) - 1
+	*srcGroup = slices.Delete((*srcGroup), index, index+1)
+}
+
 // DistributeCoins distributes coins fairly among party members in a fixed order
+// Hands extras out one at a time and rotates coin priority
 func DistributeCoins(p *models.Party, money map[string]int) {
 	numMembers := len(p.ActiveMembers)
 	if numMembers == 0 {
@@ -30,7 +44,7 @@ func DistributeCoins(p *models.Party, money map[string]int) {
 
 		// Assign evenly to each member
 		for i := range p.ActiveMembers {
-			fmt.Printf("Adding %d of %s to %s's wallet\n", each, coinType, p.ActiveMembers[i].Name)
+			log.Printf("Adding %d of %s to %s's wallet\n", each, coinType, p.ActiveMembers[i].Name)
 			p.ActiveMembers[i].Coins[coinType] += each
 		}
 
@@ -63,20 +77,17 @@ func DistributeCoins(p *models.Party, money map[string]int) {
 func DistributeExperience(p *models.Party, xp int) {
 	for i := range p.ActiveMembers {
 		p.ActiveMembers[i].XP += xp / len(p.ActiveMembers)
-		CheckLevelUp(&p.ActiveMembers[i])
+		checkLevelUp(&p.ActiveMembers[i])
 	}
 
-	fmt.Println("XP added!")
+	log.Println("XP added!")
 }
 
-func AddMember(p *models.Party, name string, xp int, money map[string]int) {
-	m := models.Member{Name: name, Level: DetermineLevel(xp), XP: xp, Coins: money, CoinPriority: len(p.ActiveMembers)}
-	p.ActiveMembers = append(p.ActiveMembers, m)
-	log.Printf("Welcome to the party %s!\n", m.Name)
+func GetFirstCoinPriority(p *models.Party) int {
+	return slices.IndexFunc(p.ActiveMembers, func(m models.Member) bool { return m.CoinPriority == 0 })
 }
 
-// CheckLevelUp checks if a member levels up
-func CheckLevelUp(member *models.Member) {
+func checkLevelUp(member *models.Member) {
 
 	for member.Level < len(models.XpThresholds)-1 {
 		if member.XP >= models.XpThresholds[member.Level] {
@@ -88,7 +99,8 @@ func CheckLevelUp(member *models.Member) {
 	}
 }
 
-func DetermineLevel(xp int) int {
+// Determines the level of a character for a given amount of xp
+func determineLevel(xp int) int {
 	for i := range models.XpThresholds {
 		if xp < models.XpThresholds[i] {
 			return i
@@ -97,19 +109,4 @@ func DetermineLevel(xp int) int {
 
 	// max level
 	return 20
-}
-
-func ChangeMemberActivity(p *models.Party, memberName string, tableName string) {
-	log.Printf("tableName = %s, memberName = %s", tableName, memberName)
-	if tableName == "Active" {
-		// Deactivating Member
-		memberIndex := slices.IndexFunc(p.ActiveMembers, func(m models.Member) bool { return m.Name == memberName })
-		p.InactiveMembers = append(p.InactiveMembers, (p.ActiveMembers)[memberIndex])
-		p.ActiveMembers = slices.Delete((p.ActiveMembers), memberIndex, memberIndex+1)
-	} else {
-		// Activating Member
-		memberIndex := slices.IndexFunc(p.InactiveMembers, func(m models.Member) bool { return m.Name == memberName })
-		p.ActiveMembers = append(p.ActiveMembers, (p.InactiveMembers)[memberIndex])
-		p.InactiveMembers = slices.Delete((p.InactiveMembers), memberIndex, memberIndex+1)
-	}
 }

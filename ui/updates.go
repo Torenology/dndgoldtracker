@@ -6,6 +6,7 @@ import (
 	"dndgoldtracker/storage"
 	"fmt"
 	"log"
+	"slices"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -142,6 +143,7 @@ func updateExperience(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// Update loop for adding members
 func updateAddMember(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -160,6 +162,7 @@ func updateAddMember(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				var err error
 				if m.memberInputs[0].Value() == "" {
 					log.Println("Name value required, try again")
+					m.chosen = false
 					return m, nil
 				}
 				name := m.memberInputs[0].Value()
@@ -188,7 +191,7 @@ func updateAddMember(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				m.chosen = false
 				return m, nil
 			}
-			// Cycle indexes
+		// Cycle indexes
 		case "up", "shift-tab", "down":
 			s := msg.String()
 			if s == "down" {
@@ -207,33 +210,56 @@ func updateAddMember(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// Update loop for activating or deactivating members
 func updateActivateMembers(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
-	var selectedTable table.Model
-	var tableName string
-	if m.activeMemberTable.Focused() {
-		selectedTable = m.activeMemberTable
-		tableName = "Active"
-	} else {
-		selectedTable = m.inactiveMemberTable
-		tableName = "Inactive"
-	}
 	var activeCmd tea.Cmd
 	var inactiveCmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
+			// Change table focus with tab
 			if m.activeMemberTable.Focused() {
 				m.activeMemberTable.Blur()
 				m.inactiveMemberTable.Focus()
+				m.inactiveMemberTable.SetCursor(0)
 			} else {
 				m.activeMemberTable.Focus()
+				m.activeMemberTable.SetCursor(0)
 				m.inactiveMemberTable.Blur()
 			}
 		case "enter":
+			var selectedTable *table.Model
+			var selectedMembers *[]models.Member
+			var unselectedMembers *[]models.Member
+			// Move the selected member from their current table to the new one
+			if m.activeMemberTable.Focused() {
+				selectedTable = &m.activeMemberTable
+				selectedMembers = &m.party.ActiveMembers
+				unselectedMembers = &m.party.InactiveMembers
+			} else {
+				selectedTable = &m.inactiveMemberTable
+				selectedMembers = &m.party.InactiveMembers
+				unselectedMembers = &m.party.ActiveMembers
+			}
 			// activate/deactivate member
-			selectedMemberName := selectedTable.SelectedRow()[0]
-			commands.ChangeMemberActivity(&m.party, selectedMemberName, tableName)
+			if len(selectedTable.SelectedRow()) <= 0 {
+				// Unselected cursor or empty table
+				// Set cursor to first element and return
+				log.Println("Unselected cursor thing")
+				selectedTable.SetCursor(0)
+				return m, nil
+			}
+
+			memberName := selectedTable.SelectedRow()[0]
+			if m.activeMemberTable.Focused() {
+				log.Printf("Moving %s from %s to %s", memberName, "Active", "Inactive")
+			} else {
+				log.Printf("Moving %s from %s to %s", memberName, "Inactive", "Active")
+			}
+
+			memberIndex := slices.IndexFunc(*selectedMembers, func(m models.Member) bool { return m.Name == memberName })
+			commands.ChangeMemberGroup(selectedMembers, unselectedMembers, memberIndex)
 			m.activeMemberTable.SetRows(membersToRows(m.party.ActiveMembers))
 			m.inactiveMemberTable.SetRows(membersToRows(m.party.InactiveMembers))
 		case "s":
@@ -242,6 +268,7 @@ func updateActivateMembers(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 		}
 
 	}
+
 	m.activeMemberTable, activeCmd = m.activeMemberTable.Update(msg)
 	m.inactiveMemberTable, inactiveCmd = m.inactiveMemberTable.Update(msg)
 	return m, tea.Batch(activeCmd, inactiveCmd)

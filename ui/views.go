@@ -1,9 +1,8 @@
 package ui
 
 import (
-	"dndgoldtracker/models"
+	"dndgoldtracker/commands"
 	"fmt"
-	"slices"
 	"strings"
 )
 
@@ -13,6 +12,8 @@ import (
 func choicesView(m model) string {
 	choice := m.choice
 	var msg string
+	msg += "Current Coin Priority is to " +
+		focusedStyle.Render(m.party.ActiveMembers[commands.GetFirstCoinPriority(&m.party)].Name)
 	msg += baseStyle.Render(m.activeMemberTable.View())
 
 	msg += "\nWhat would you like to do?"
@@ -36,11 +37,12 @@ func choicesView(m model) string {
 // The view for adding money
 func moneyView(m model) string {
 	var msg strings.Builder
-	currentPrio := slices.IndexFunc(m.party.ActiveMembers, func(m models.Member) bool { return m.CoinPriority == 0 })
-	msg.WriteString("Money entered here will be distributed to all party members as equally as possible.\n")
-	msg.WriteString("Extra coins are distributed based on a priority system that rotates.\n")
-	msg.WriteString(fmt.Sprintf("Current Coin Priority is to %s\n\n", m.party.ActiveMembers[currentPrio].Name))
-	msg.WriteString(buildInputList(m.coinInputs, m.coinFocusIndex, m.cursorMode))
+
+	msg.WriteString(baseStyle.Render("Money entered here will be distributed to all party members as equally as possible.\n" +
+		"Extra coins are distributed based on a priority system that rotates.\n" +
+		"Current Coin Priority is to " +
+		focusedStyle.Render(m.party.ActiveMembers[commands.GetFirstCoinPriority(&m.party)].Name)))
+	msg.WriteString("\n" + buildInputList(m.coinInputs, m.coinFocusIndex, m.cursorMode))
 	return msg.String()
 }
 

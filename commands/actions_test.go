@@ -9,8 +9,8 @@ import (
 func TestDistributeExperience(t *testing.T) {
 	party := models.Party{
 		ActiveMembers: []models.Member{
-			{Name: "Alice", Level: 1, XP: 0},
-			{Name: "Bob", Level: 1, XP: 0},
+			{Name: "Keg", Level: 1, XP: 0},
+			{Name: "Rowan", Level: 1, XP: 0},
 		},
 	}
 
@@ -58,9 +58,9 @@ func TestDistributeCoins(t *testing.T) {
 		expectedSilver   int
 		expectedCopper   int
 	}{
-		{"Keg", 4, 3, 2, 2, 1},
-		{"Rowan", 3, 2, 3, 2, 1},
-		{"Fred", 3, 3, 2, 1, 1},
+		{"Keg" /*PP*/, 4 /*GP*/, 3 /*EP*/, 2 /*SP*/, 2 /*CP*/, 1},
+		{"Rowan" /*PP*/, 3 /*GP*/, 2 /*EP*/, 3 /*SP*/, 2 /*CP*/, 1},
+		{"Fred" /*PP*/, 3 /*GP*/, 3 /*EP*/, 2 /*SP*/, 1 /*CP*/, 1},
 	}
 
 	// Iterate through the test cases and compare expected vs actual
