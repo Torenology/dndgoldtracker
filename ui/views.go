@@ -12,8 +12,11 @@ import (
 func choicesView(m model) string {
 	choice := m.choice
 	var msg string
-	msg += "Current Coin Priority is to " +
-		focusedStyle.Render(m.party.ActiveMembers[commands.GetFirstCoinPriority(&m.party)].Name)
+	if (len(m.party.ActiveMembers)) > 0 {
+		msg += "Current Coin Priority is to " +
+			focusedStyle.Render(m.party.ActiveMembers[commands.GetFirstCoinPriority(&m.party)].Name)
+	}
+
 	msg += baseStyle.Render(m.activeMemberTable.View())
 
 	msg += "\nWhat would you like to do?"
@@ -39,9 +42,12 @@ func moneyView(m model) string {
 	var msg strings.Builder
 
 	msg.WriteString(baseStyle.Render("Money entered here will be distributed to all party members as equally as possible.\n" +
-		"Extra coins are distributed based on a priority system that rotates.\n" +
-		"Current Coin Priority is to " +
-		focusedStyle.Render(m.party.ActiveMembers[commands.GetFirstCoinPriority(&m.party)].Name)))
+		"Extra coins are distributed based on a priority system that rotates.\n"))
+	if (len(m.party.ActiveMembers)) > 0 {
+		msg.WriteString("Current Coin Priority is to " +
+			focusedStyle.Render(m.party.ActiveMembers[commands.GetFirstCoinPriority(&m.party)].Name))
+	}
+
 	msg.WriteString("\n" + buildInputList(m.coinInputs, m.coinFocusIndex, m.cursorMode))
 	return msg.String()
 }
